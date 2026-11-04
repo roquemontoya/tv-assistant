@@ -230,6 +230,16 @@ public final class HostChecks {
       JSONObject result = ActionPlan.run(plan(), Json.obj(), runner(calls, Json.obj("value", 56), false));
       yes(calls[0] == 2 && !result.getBoolean("stopped_early") && result.getInt("completed_steps") == 2);
     });
+    check("coordinate screen actions require approval independent of caller target text", () -> {
+      for (String tool : new String[] {"screen_tap", "screen_swipe", "keyboard_keys"})
+        yes(Tools.requiresCoordinateApproval(tool));
+      for (String tool : new String[] {"screen_click", "screen_type", "screen_scroll"})
+        yes(!Tools.requiresCoordinateApproval(tool));
+      String prompt = Tools.coordinateApprovalPrompt("screen_tap", "open settings");
+      yes(prompt.contains("unverified") && prompt.contains("open settings"));
+      prompt = Tools.coordinateApprovalPrompt("keyboard_keys", "harmless search");
+      yes(prompt.contains("unverified") && prompt.contains("harmless search"));
+    });
     check("fresh labels reject ambiguity, disabled and password fields", () -> {
       JSONObject target = Json.obj("id", 1, "tag", "BUTTON", "label", "Find");
       yes(Tools.uniqueTarget(Json.obj("nodes", Json.arr(target)), "find", false, true, false).getInt("id") == 1);
