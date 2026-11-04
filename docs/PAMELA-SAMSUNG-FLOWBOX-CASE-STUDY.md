@@ -93,3 +93,28 @@ The user requested a way for an installed Pamela app to discover new versions fr
 
 - 2026-11-04: recorded product milestone P-001 — development APK v0.2.4 installed and launched on Flowbox F1 with LG display, confirmed by the user.
 - 2026-11-04: added the planned GitHub Releases-based update checker and guided updater design. No updater code or silent-install capability is claimed to exist yet.
+
+
+## Release channel decision — Pre-release 1
+
+**User decision:** designate the already-installed development build v0.2.4 as the first pre-release milestone (Pre-release 1), then continue development through the agreed feature set until a stable release is justified.
+
+**Versioning clarification:** the existing APK was built with version v0.2.4. It must not be silently relabeled as a different binary version. For release presentation, record it as **Pamela Pre-release 1 (based on build v0.2.4)**. The next newly built prerelease should use an explicit SemVer prerelease identifier (for example, `0.2.5-beta.1` or the next version selected after inspecting the app's actual versionCode/versionName configuration). Do not change versionCode/versionName until the Gradle/build configuration and installed package metadata have been inspected.
+
+**Publication status:** this decision is recorded, but a formal GitHub Release/tag is not claimed as published here. The available repository integration can read and commit files but does not expose a GitHub Releases create/publish action. The existing CI artifact is temporary and is not a substitute for a durable GitHub Pre-release.
+
+## Roadmap to stable release
+
+Work remains on `feature/pamela-samsung-flowbox`; do not merge into `main` without explicit approval.
+
+1. **Baseline and inventory:** preserve v0.2.4 as the known-good physical-install baseline; inspect package ID, versionCode/versionName, signing certificate continuity, target/min Android versions, ABI, permissions, and the actual source/build configuration.
+2. **Functional inventory:** verify the documented 40 tools against implementation and tests; distinguish implemented, partially supported, unavailable, and unverified behavior. Do not treat a tool being listed as proof it works on Flowbox.
+3. **UX and i18n:** retain language-neutral internal tool identifiers; add user-facing labels/descriptions; implement automatic locale detection, manual override with persistence, and es-419 fallback. Test interface strings separately from AI-generated response language.
+4. **Device capability and voice integration:** implement and validate the Samsung-to-Flowbox local-network voice path, with explicit pairing, authentication, narrow network permissions, clear connection status, and user-controlled microphone activation. Do not assume the TV box microphone works.
+5. **AI integration:** implement/configure a supported AI connection with explicit consent, secure credential handling, bounded tool execution, visible action status, and no unsupported reuse of subscription credentials as an API.
+6. **GitHub update mechanism:** publish durable, signed GitHub Releases with APK, release notes, SHA-256, signing-certificate fingerprint, compatibility metadata, and inspection report. Add stable/prerelease channel selection, release lookup, compatible-version checks, verified download, certificate continuity check, and Android's user-confirmed package installer handoff. No silent installation or security bypass.
+7. **Release automation:** extend CI so tests, dependency audit, reproducible build checks, APK inspection, signing, checksum generation, and release packaging must all pass before publication. Keep secrets/signing keys out of the repository and CI logs.
+8. **Physical acceptance:** test installation and in-place update on Flowbox F1; test Samsung voice relay and LG output; exercise offline/no-GitHub, interrupted download, invalid checksum/signature, incompatible APK, denied permissions, and recovery to the known-good build.
+9. **Stable gate:** publish stable only after all critical tests pass, known limitations are documented, update/rollback recovery is demonstrated, and the user accepts the release candidate.
+
+**Completion rule:** each milestone is reported as implemented, tested in CI, tested on physical hardware, or still pending. A successful build is not a substitute for a physical-device test. The current v0.2.4 installation remains the baseline; no claim is made that the updater, multilingual UI, Samsung relay, or full AI workflow is already implemented.
