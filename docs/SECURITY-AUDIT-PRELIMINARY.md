@@ -140,3 +140,36 @@ Disposition: no build or installation was attempted. A clean, isolated build rem
 Static source review is complete for authentication/token storage, network transport, microphone probe, screen capture, accessibility navigation, tool dispatch, action plans, and the checked-in test/build harness.
 
 The coordinate-authorization gap is the main security finding to resolve before an APK is treated as safe for normal use. Existing test evidence is encouraging but does not close that gap. No APK was produced, installed, or run as part of this audit.
+
+## Remediation and Java vulnerability review — 2026-11-04
+
+### Coordinate authorization remediation
+
+The tool dispatch was changed so `screen_tap`, `screen_swipe`, and `keyboard_keys` always request host approval after validating the fresh screenshot/package context and before dispatching the gesture. The caller-supplied `target` is shown only as unverified context; it is no longer used to decide whether approval is needed. `screen_type` now checks both the independently observed field label and the actual text being entered against the sensitive-action classifier. The classifier remains a warning heuristic, not a complete semantic security boundary.
+
+A host-side regression check was added to assert that coordinate tools require approval regardless of target wording and that ordinary node-based click/type/scroll tools are not automatically put behind the coordinate gate. This check is committed but has **not** been executed in this environment; no fresh test pass is claimed.
+
+### September/October 2026 Java advisories
+
+- Oracle's September 2026 Java SE advisory lists 3 new Java SE security patches. Oracle's October 2026 CPU lists 55 new Java SE patches, 49 described as remotely exploitable without authentication.
+- Oracle's 30 October 2026 Security Alert for CVE-2026-114820 lists CVSS 9.1 and explains that the fix removes impacted eMudhra root CA certificates from Oracle Java trust stores. Oracle lists supported Java SE patch levels including 8u511, 11.0.33.0.2, 17.0.21.0.2, 21.0.13.0.2, 25.0.5.0.2 and 27.0.1.0.2.
+- The app's APK is an Android application compiled to Java 8 bytecode and executed by Android's ART runtime; it does not bundle an Oracle JDK/JRE. Its HTTPS path uses Android platform networking/TLS. Therefore the Oracle Java SE/JDK advisories are **not established as direct runtime matches** for the APK. Android's platform TLS provider and trust store are separate and still require verification against the actual Flowbox firmware/security patch level.
+- The build script does not pin the host JDK vendor or patch level. The build workstation's installed JDK must be inventoried and updated independently; the current repository evidence does not establish which JDK version was used for a local build.
+
+### Direct dependency finding: CVE-2026-90584
+
+The September 2026 CVE-2026-90584 affects TooTallNate Java-WebSocket 1.6.0 (the exact version pinned in the original `dependencies.json`; advisory data also lists 1.6.1). It concerns resource allocation during fragmented-frame handling in `Draft_6455.processFrameContinuousAndNonFin`, with a reported CVSS 3.1 score of 5.3 (Medium). The app used the library as a WebSocket client to a fixed `wss://api.openai.com/v1/responses` endpoint, so exposure was narrower than an Internet-facing WebSocket server, but the vulnerable frame parser was present in the client and could process peer-supplied frames.
+
+The referenced upstream pull request #1509 was still open and unmerged when checked; no fixed upstream release was confirmed. It proposes a default frame-size cap and pre-allocation checks, but was not treated as an accepted upstream fix.
+
+**Mitigation committed:**
+- Replaced the WebSocket transport wrapper with HTTPS/SSE-only transport using the existing bounded `Net.stream` path.
+- Removed Java-WebSocket 1.6.0 and its SLF4J runtime dependencies from `dependencies.json`.
+- Updated `build.sh` so the APK compiler/DEX step no longer packages third-party runtime JARs.
+- Updated the runtime notices and README to document the temporary HTTPS/SSE-only behavior and the security-over-latency tradeoff.
+
+This removes the vulnerable Java-WebSocket implementation from the APK build inputs rather than merely relying on the remote endpoint being trusted. WebSocket must not be re-enabled until a fixed release is available, its exact source/version is reviewed, and fragmentation/frame-size tests pass.
+
+### Current verification boundary
+
+GitHub accepted the source, test, build, dependency, notice and README updates on `feature/pamela-samsung-flowbox`. The branch has not been built in this environment: Android SDK/build-tools are unavailable here, and the host-side test script has not been run. The APK has not been generated or installed. Before device testing, run the offline checks and clean APK build in an isolated environment, inspect the resulting APK to confirm no Java-WebSocket/SLF4J classes or JARs are packaged, then verify the Flowbox Android build fingerprint and TLS provider.
