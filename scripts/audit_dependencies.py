@@ -117,11 +117,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--manifest", action="append",
-        default=["dependencies.json", "host-dependencies.json"],
+        default=None,
         help="Dependency manifest to audit (may be repeated)",
     )
     args = parser.parse_args()
-    dependencies = load_dependencies(args.manifest)
+    manifests = args.manifest or ["dependencies.json", "host-dependencies.json"]
+    dependencies = load_dependencies(manifests)
     print(f"Validated {len(dependencies)} pinned dependency entries.")
     if not dependencies:
         print("No third-party Maven dependencies are currently declared.")
