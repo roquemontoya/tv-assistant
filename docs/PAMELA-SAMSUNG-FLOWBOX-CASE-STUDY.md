@@ -136,3 +136,14 @@ Work remains on `feature/pamela-samsung-flowbox`; do not merge into `main` witho
 - Updated locale resolution: manual Spanish selection is stored as `es-419`; automatic device Spanish resolves to `es-419`, Portuguese to `pt-BR`, English to `en`, and unsupported locales fall back to `es-419`. Existing legacy `es` preference values remain compatible.
 - The language selector now exposes Latin American Spanish explicitly. This is a partial i18n foundation, not full localization: hard-coded strings in dialogs, notifications, diagnostics, tool outputs, and assistant-generated responses still require systematic migration and verification.
 - Next required checks: validate catalog entries and stable identifiers, complete the translation review, migrate UI strings into runtime resources, pass the selected locale into the assistant response instructions, then run CI and device regression tests.
+
+
+## Catalog scope clarification — 2026-11-04
+
+The user clarified that the localization catalog must contain **only end-user-visible or end-user-audible text**. This is now the governing rule for P-003.
+
+- Included: screen labels, buttons, menus, dialogs, status and notification text, permission explanations, and user-facing tool/result summaries.
+- Excluded and left in the original upstream language: source identifiers, class/function names, tool IDs, parameter names, JSON keys and schemas, internal prompts/system instructions, protocol/network strings, logs, traces, debug output, exception internals, and developer comments.
+- The catalog was narrowed from a broad source-string scrape (919 candidates) to a conservative 98-entry draft drawn from clear UI callsites in `MainActivity.java` and rendered result fragments in `LocalFormatter.java`.
+- The 98 entries are candidates for review, not a claim that the inventory is complete. Dynamic messages and visible strings in other components (for example permission/service notifications and authentication flows) still need a dedicated pass.
+- Translation must never alter tool contracts or internal identifiers. Runtime locale resources should map stable UI keys to translated display strings only.
