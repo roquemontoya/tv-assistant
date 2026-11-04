@@ -57,3 +57,44 @@ Do not select an APK variant or install until the Flowbox ABI and runtime detail
 ## Current result
 
 No APK exists from this audit. No changes were made to application code. This report records verified manifest/build facts and clearly labels the remaining review work.
+
+
+## Source-level review — 2026-11-04
+
+The following observations come from reading the actual Java implementations in `src/dev/mert/tvassistant/`. They are static-review findings, not runtime test results.
+
+### Authentication and token storage
+
+- `ChatAuth` creates cryptographically random state, nonce, and PKCE verifier values; uses S256; binds the callback listener to 127.0.0.1 on an ephemeral port; checks callback path/state; exchanges the code with the verifier; and verifies the ID-token RS256 signature against the provider JWKS.
+- The ID-token checks include issuer, audience (and `azp` when multiple audiences are present), expiry, future `iat`/ `nbf` bounds, nonce, and non-empty subject. Reconnecting an existing account also checks subject continuity.
+- `Vault` encrypts account JSON with AES-GCM and an Android Keystore AES key. The ciphertext and IV are stored in app-private SharedPreferences.
+- Refresh is synchronized and saves the returned token set. Sign-out attempts remote revocation and reports when it could only sign out locally.
+- **Still to test/review:** malformed/oversized callback inputs, concurrent sign-in/cancel/sign-out, key invalidation/device restore behavior, refresh-token rotation responses, and whether every diagnostic/error path remains free of credentials. The callback accepts loopback HTTP by design; state validation is the main callback binding control and must remain mandatory.
+
+### Network and WebSocket
+
+- `Net.open` rejects non-HTTPS URLs, uses platform TLS defaults, disables automatic redirects, applies connect/read timeouts, and bounds response bodies. Authenticated requests attach the bearer token only after the HTTPS check.
+- `ResponseSocket` connects only to the literal `wss://api.openai.com/v1/responses` endpoint with a bearer header. It bounds message queue size, message size, total response size, and task duration, and deliberately does not replay a request after an ambiguous disconnect.
+- On API levels below 24 the code uses HTTPS/SSE instead of the WebSocket library because the project documents a hostname-verification limitation in that library on older Android.
+- **Still to test/review:** dependency source/version behavior for TLS hostname verification on API 24+, certificate failures, redirect/error handling, cancellation under blocked reads, and confirmation that tokens never enter logs or exception text. The WebSocket library behavior must be independently verified rather than inferred from the URL scheme.
+
+### Microphone and screen capture
+
+- `MicrophoneProbe` checks runtime RECORD_AUDIO permission, uses a bounded eight-second foreground capture, computes aggregate levels, zeroes sample buffers, releases AudioRecord, and does not construct an audio upload request in the inspected implementation.
+- Bluetooth SCO is optional. Cleanup restores the prior SCO state in the remaining teardown path; routing success is reported separately from the mere presence of a route flag.
+- `CaptureService` obtains a MediaProjection grant, runs as a foreground service with a visible stop action, retains one latest frame in memory, JPEG-encodes only after an explicit capture request, and closes the frame/reader/projection on teardown. The returned screenshot is explicitly marked as untrusted visual content.
+- **Privacy limitation:** a screenshot can contain account details or other visible sensitive information. The implementation's password-field masking in accessibility nodes does not itself redact pixels in a screenshot. The user must treat screen vision as a separate, explicit disclosure to the AI service.
+- **Still to test/review:** lifecycle races (stop while capture is pending), process death, repeated consent, protected/secure windows, whether the foreground service type is accepted on target OS versions, and verifying that all capture entry points require the user-approved session.
+
+### Accessibility and tool execution
+
+- `NavigationService` walks only visible nodes and bounds tree depth/node count. It masks password text/description, rejects typing into password fields, checks snapshot freshness, and recycles node references. Gestures are bounded to the current UI snapshot.
+- The service can still read non-password text from other apps and click, type, scroll, focus, navigate Home/Back/Recents/notifications, and dispatch gestures. This is inherently high-trust access and should be enabled only by a user who understands the scope.
+- `Tools` uses declared schemas and a step budget; the inspected action-plan/workflow code verifies final results before learning/replaying reusable paths. Some operations explicitly require host approval (for example note removal and sensitive actions); the full dispatch paths still need systematic verification.
+- **Still to test/review:** every tool's side effects and approval requirement, package/origin enforcement, prompt-injection resistance from page/node/screenshot content, stale-node behavior during app changes, exported-component exposure, and Android-version-specific behavior.
+
+### Findings and disposition
+
+No confirmed exploitable vulnerability has been established by this static pass. The reviewed code contains several meaningful safeguards, but static inspection cannot prove that they work on the Flowbox or that every execution path uses them correctly.
+
+No code changes, APK build, device installation, or network inference test was performed during this source review. The next safe step is offline source/test review and a clean build in an isolated environment, followed by Flowbox hardware/ABI identification before any installation decision.
