@@ -188,3 +188,16 @@ Added `.github/workflows/pamela-checks.yml`:
 The weekly schedule is only activated by GitHub after this workflow exists on the repository's default branch. Push checks work on this feature branch. The workflow has been committed but **has not yet been observed running successfully**; no green CI result is claimed. The workflow does not install the APK or run ADB/device tests.
 
 Scope limitation: OSV checks the declared direct Maven artifacts only. It does not audit Android/Fire OS firmware, the developer workstation's JDK/OS, unlisted libraries, arbitrary source code, or remote services. It does not automatically upgrade dependencies.
+
+
+### First successful CI validation — 2026-11-04
+
+GitHub Actions run [41769117963](https://github.com/roquemontoya/tv-assistant/actions/runs/41769117963) completed successfully on commit `45dc83b`:
+- Dependency-auditor unit tests: **4 passed**.
+- OSV query: the sole declared dependency, `org.json:json:20240303` in `host-dependencies.json`, returned no known OSV vulnerabilities. The APK runtime dependency manifest is empty.
+- Android SDK platform 36 and Build Tools 36.0.0 setup succeeded.
+- Development APK build succeeded.
+- Host-side JVM regression checks: **44 passed, 0 failed**, including the coordinate-approval regression test.
+- No APK was installed on a TV or emulator. The runner's generated APK was not published as a downloadable artifact.
+
+A follow-up CI change adds an APK archive inspection step that explicitly rejects Java-WebSocket or SLF4J package entries. That new step will be confirmed by the next workflow run; it is not covered by run 41769117963.
