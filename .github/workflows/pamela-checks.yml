@@ -53,5 +53,17 @@ jobs:
         run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - name: Build development APK
         run: bash build.sh
+      - name: Verify removed WebSocket libraries are absent from APK
+        run: |
+          python - <<'PY'
+          import zipfile
+          apk = "dist/tv-assistant.apk"
+          with zipfile.ZipFile(apk) as archive:
+              names = archive.namelist()
+          forbidden = [name for name in names if name.startswith(("org/java_websocket/", "org/slf4j/"))]
+          if forbidden:
+              raise SystemExit("Removed WebSocket/logging classes found in APK: " + ", ".join(forbidden[:10]))
+          print("PASS: APK contains no Java-WebSocket or SLF4J package entries.")
+          PY
       - name: Run host-side regression tests
         run: bash test-local.sh
