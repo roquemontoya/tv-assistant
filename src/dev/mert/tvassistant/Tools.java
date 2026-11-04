@@ -1298,7 +1298,8 @@ final class Tools {
           String pkg = initial.optString("package");
           float[] points = capture.points(a.getString("snapshot"), coordinates, pkg);
           // The caller-supplied target is context only, never an authorization signal.
-          approve(coordinateApprovalPrompt("keyboard_keys", a.optString("target")));
+          if (requiresCoordinateApproval("keyboard_keys"))
+            approve(coordinateApprovalPrompt("keyboard_keys", a.optString("target")));
           int completed = 0;
           for (int i = 0; i < keys.length(); i++) {
             if (host.cancelled()) throw new InterruptedException("Task stopped");
@@ -1346,7 +1347,8 @@ final class Tools {
                   : new int[] {a.getInt("x"), a.getInt("y")};
           float[] point = capture.points(a.getString("snapshot"), coordinates, pkg);
           // Require approval after validating the fresh snapshot, independent of target wording.
-          approve(coordinateApprovalPrompt(name, target));
+          if (requiresCoordinateApproval(name))
+            approve(coordinateApprovalPrompt(name, target));
           CountDownLatch done = new CountDownLatch(1);
           boolean[] completed = {false};
           boolean accepted =
