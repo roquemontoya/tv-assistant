@@ -126,3 +126,13 @@ Work remains on `feature/pamela-samsung-flowbox`; do not merge into `main` witho
 - **P-003 internationalization foundation:** initial code committed. Added `LocaleText.java` with automatic locale selection (device locale), manual persisted choices for automatic, Spanish, English, and Brazilian Portuguese, core interface translations, and translated display labels for all 40 tool IDs. The internal tool IDs and execution contracts remain unchanged.
 - **P-003 limitations:** this is a foundation, not complete localization. Tool descriptions, many dialogs/status messages, notifications, and AI-generated answers are not yet fully localized. The AI response layer does not yet receive a locale instruction. These remain explicit follow-up work.
 - **Build/test status:** no successful CI result is claimed in this document until the new commit's workflow has completed. A clean build and tests must validate the new Java class and Activity changes before another APK is offered for installation.
+
+
+## Localization catalog — P-003 implementation progress
+
+- Added `localization/PAMELA_STRING_CATALOG.txt` as a draft inventory extracted from the current Java sources. It records source text, originating file, locale columns (`es-419`, `en`, `pt-BR`), and review status.
+- The initial extraction is intentionally marked `[PENDING]`; it includes candidate strings from UI, tool descriptions, and assistant logic. It is an inventory for human review, not yet a certified list of user-visible strings. Some entries may be internal prompts, technical diagnostics, or duplicates with different contexts.
+- The catalog is not loaded by the APK at runtime. Android runtime localization still needs a reviewed migration into Android resources or a generated resource layer. Do not edit the catalog and assume the running app has changed.
+- Updated locale resolution: manual Spanish selection is stored as `es-419`; automatic device Spanish resolves to `es-419`, Portuguese to `pt-BR`, English to `en`, and unsupported locales fall back to `es-419`. Existing legacy `es` preference values remain compatible.
+- The language selector now exposes Latin American Spanish explicitly. This is a partial i18n foundation, not full localization: hard-coded strings in dialogs, notifications, diagnostics, tool outputs, and assistant-generated responses still require systematic migration and verification.
+- Next required checks: validate catalog entries and stable identifiers, complete the translation review, migrate UI strings into runtime resources, pass the selected locale into the assistant response instructions, then run CI and device regression tests.
