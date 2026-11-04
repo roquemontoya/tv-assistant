@@ -149,7 +149,7 @@ TV_DEVICE=192.168.1.104:5555 TV_ADB_PORT=5038 bash test.sh
 TV_TEST_GROUP=youtube TV_DEVICE=192.168.1.104:5555 TV_ADB_PORT=5038 bash test.sh
 ```
 
-The build downloads checksum-pinned Java-WebSocket/SLF4J jars from Maven Central on first use. See THIRD_PARTY_NOTICES.md. Offline checks use a separate org.json jar; it is not included in the APK.
+The APK build currently has no third-party runtime JAR dependencies. Offline checks use a separate checksum-pinned org.json jar; it is not included in the APK. See THIRD_PARTY_NOTICES.md.
 
 Build intermediates and the development signing key are in the project's ignored `build/` directory. Preserve that key for updates to the installed development app. A distributable production release should use a separately managed release key.
 
