@@ -151,7 +151,7 @@ A host-side regression check was added to assert that coordinate tools require a
 
 ### September/October 2026 Java advisories
 
-- Oracle's September 2026 Java SE advisory lists 3 new Java SE security patches. Oracle's October 2026 CPU lists 55 new Java SE patches, 49 described as remotely exploitable without authentication.
+- Oracle's September 2026 Java SE risk matrix lists 3 new patches, all for Oracle GraalVM variants. Oracle's October 2026 CPU lists 55 new Java SE patches, 49 described as remotely exploitable without authentication.
 - Oracle's 30 October 2026 Security Alert for CVE-2026-114820 lists CVSS 9.1 and explains that the fix removes impacted eMudhra root CA certificates from Oracle Java trust stores. Oracle lists supported Java SE patch levels including 8u511, 11.0.33.0.2, 17.0.21.0.2, 21.0.13.0.2, 25.0.5.0.2 and 27.0.1.0.2.
 - The app's APK is an Android application compiled to Java 8 bytecode and executed by Android's ART runtime; it does not bundle an Oracle JDK/JRE. Its HTTPS path uses Android platform networking/TLS. Therefore the Oracle Java SE/JDK advisories are **not established as direct runtime matches** for the APK. Android's platform TLS provider and trust store are separate and still require verification against the actual Flowbox firmware/security patch level.
 - The build script does not pin the host JDK vendor or patch level. The build workstation's installed JDK must be inventoried and updated independently; the current repository evidence does not establish which JDK version was used for a local build.
