@@ -117,7 +117,7 @@ public final class UpdateChecker {
 
 
   private static int compareVersions(String candidate, String installed) {
-    String[] left = candidate.replaceFirst("^[vV]", "").split("[-+]", 2)[0].split("\\\\.");
+    String[] left = candidate.replaceFirst("^[vV]", "").split("[-+]", 2)[0].split("\\.");
     String[] right = installed.replaceFirst("^[vV]", "").split("[-+]", 2)[0].split("\\\\.");
     int count = Math.max(left.length, right.length);
     for (int i = 0; i < count; i++) {
