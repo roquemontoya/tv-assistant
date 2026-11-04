@@ -118,3 +118,11 @@ Work remains on `feature/pamela-samsung-flowbox`; do not merge into `main` witho
 9. **Stable gate:** publish stable only after all critical tests pass, known limitations are documented, update/rollback recovery is demonstrated, and the user accepts the release candidate.
 
 **Completion rule:** each milestone is reported as implemented, tested in CI, tested on physical hardware, or still pending. A successful build is not a substitute for a physical-device test. The current v0.2.4 installation remains the baseline; no claim is made that the updater, multilingual UI, Samsung relay, or full AI workflow is already implemented.
+
+
+## P-002 / P-003 progress — 2026-11-04
+
+- **P-002 static tool inventory:** completed. Confirmed 40 tool identifiers are registered in `Tools.register()`; the detailed grouped inventory is in [P-002-TOOLS-INVENTORY.md](P-002-TOOLS-INVENTORY.md). This is a source inventory, not a claim that all 40 tools have passed physical-device tests.
+- **P-003 internationalization foundation:** initial code committed. Added `LocaleText.java` with automatic locale selection (device locale), manual persisted choices for automatic, Spanish, English, and Brazilian Portuguese, core interface translations, and translated display labels for all 40 tool IDs. The internal tool IDs and execution contracts remain unchanged.
+- **P-003 limitations:** this is a foundation, not complete localization. Tool descriptions, many dialogs/status messages, notifications, and AI-generated answers are not yet fully localized. The AI response layer does not yet receive a locale instruction. These remain explicit follow-up work.
+- **Build/test status:** no successful CI result is claimed in this document until the new commit's workflow has completed. A clean build and tests must validate the new Java class and Activity changes before another APK is offered for installation.
