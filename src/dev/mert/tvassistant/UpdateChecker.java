@@ -80,7 +80,7 @@ public final class UpdateChecker {
   private static Release findCompatibleRelease(Context context, JSONArray releases,
       boolean includePrereleases) throws Exception {
     PackageInfo installed = packageInfo(context);
-    long currentCode = installed.getLongVersionCode();
+    String currentVersion = installed.versionName == null ? "0" : installed.versionName;
     for (int i = 0; i < releases.length(); i++) {
       JSONObject item = releases.optJSONObject(i);
       if (item == null || item.optBoolean("draft", false)) continue;
@@ -101,21 +101,36 @@ public final class UpdateChecker {
         }
       }
       if (apkUrl == null) continue;
-      long releaseCode = item.optLong("tag_name", 0);
-      // Release metadata must publish versionCode explicitly; never infer it from a tag.
-      JSONObject metadata = item.optJSONObject("metadata");
-      if (metadata != null) releaseCode = metadata.optLong("versionCode", 0);
-      if (releaseCode <= currentCode) continue;
+      String tag = item.optString("tag_name", "");
+      if (compareVersions(tag, currentVersion) <= 0) continue;
       return new Release(
           item.optString("tag_name", ""),
           item.optString("name", item.optString("tag_name", "Nueva versión")),
           item.optString("body", ""),
           apkUrl,
           checksum,
-          releaseCode,
+          0,
           prerelease);
     }
     return null;
+  }
+
+
+  private static int compareVersions(String candidate, String installed) {
+    String[] left = candidate.replaceFirst("^[vV]", "").split("[-+]", 2)[0].split("\\\\.");
+    String[] right = installed.replaceFirst("^[vV]", "").split("[-+]", 2)[0].split("\\\\.");
+    int count = Math.max(left.length, right.length);
+    for (int i = 0; i < count; i++) {
+      int a = i < left.length ? leadingNumber(left[i]) : 0;
+      int b = i < right.length ? leadingNumber(right[i]) : 0;
+      if (a != b) return Integer.compare(a, b);
+    }
+    return 0;
+  }
+
+  private static int leadingNumber(String value) {
+    String digits = value.replaceFirst("^([0-9]+).*$", "$1");
+    try { return Integer.parseInt(digits); } catch (Exception ignored) { return 0; }
   }
 
   @SuppressWarnings("deprecation")
