@@ -7,8 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing version tag to build and publish (for example v0.3.0)"
+        description: "Version tag to create/publish (for example v0.3.0)"
         required: true
+        type: string
+      source_ref:
+        description: "Branch or commit to build (default: current workflow branch)"
+        required: false
+        default: "feature/pamela-samsung-flowbox"
         type: string
 
 permissions:
@@ -26,7 +31,7 @@ jobs:
       - name: Check out tagged source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ github.event.inputs.source_ref || github.ref }}
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
