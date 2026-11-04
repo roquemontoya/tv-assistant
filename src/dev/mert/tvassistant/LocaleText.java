@@ -11,20 +11,22 @@ final class LocaleText {
   static String locale(Context context) {
     SharedPreferences p = context.getSharedPreferences("assistant", Context.MODE_PRIVATE);
     String selected = p.getString("ui_locale", "auto");
-    if (!"auto".equals(selected)) return selected;
-    String language = Locale.getDefault().getLanguage();
-    if ("es".equals(language)) return "es";
+    if (!"auto".equals(selected)) return "es".equals(selected) ? "es-419" : selected;
+    Locale deviceLocale = Locale.getDefault();
+    String language = deviceLocale.getLanguage();
+    if ("es".equals(language)) return "es-419";
     if ("pt".equals(language)) return "pt-BR";
-    return "en";
+    if ("en".equals(language)) return "en";
+    return "es-419";
   }
 
   static String display(Context context) {
     String value = context.getSharedPreferences("assistant", Context.MODE_PRIVATE)
         .getString("ui_locale", "auto");
-    if ("es".equals(value)) return "Español";
+    if ("es".equals(value) || "es-419".equals(value)) return "Español (Latinoamérica)";
     if ("pt-BR".equals(value)) return "Português (Brasil)";
     if ("en".equals(value)) return "English";
-    return "Automático (" + locale(context) + ")";
+    return "auto".equals(value) ? "Automático (Español latinoamericano)" : "Automático (" + locale(context) + ")";
   }
 
   static String text(Context context, String source) {
@@ -33,7 +35,7 @@ final class LocaleText {
     String[] row = null;
     for (String[] candidate : STRINGS) if (candidate[0].equals(source)) { row = candidate; break; }
     if (row == null) return source;
-    return "es".equals(lang) ? row[1] : row[2];
+    return isSpanish(lang) ? row[1] : row[2];
   }
 
   static String toolLabel(Context context, String id) {
@@ -41,8 +43,10 @@ final class LocaleText {
     for (String[] candidate : TOOLS) if (candidate[0].equals(id)) { row = candidate; break; }
     if (row == null) return id;
     String lang = locale(context);
-    return "en".equals(lang) ? id : "es".equals(lang) ? row[1] : row[2];
+    return "en".equals(lang) ? id : isSpanish(lang) ? row[1] : row[2];
   }
+
+  private static boolean isSpanish(String lang) { return "es-419".equals(lang) || "es".equals(lang); }
 
   private static final String[][] STRINGS = {
     {"Chat","Conversar","Conversar"},{"History","Historial","Histórico"},{"Tools","Capacidades","Ferramentas"},
