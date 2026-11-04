@@ -98,3 +98,45 @@ The following observations come from reading the actual Java implementations in 
 No confirmed exploitable vulnerability has been established by this static pass. The reviewed code contains several meaningful safeguards, but static inspection cannot prove that they work on the Flowbox or that every execution path uses them correctly.
 
 No code changes, APK build, device installation, or network inference test was performed during this source review. The next safe step is offline source/test review and a clean build in an isolated environment, followed by Flowbox hardware/ABI identification before any installation decision.
+
+
+## Tool authorization and test-harness review — 2026-11-04
+
+### Confirmed authorization design gap — coordinate actions
+
+In `Tools.execute`:
+- `screen_click` obtains the selected node's actual accessibility label before calling `sensitive(label)`. This is stronger than trusting a caller-supplied description, although the keyword classifier is still heuristic.
+- `screen_tap` calls `sensitive(target)`, where `target` is supplied in the tool arguments, then dispatches a gesture at coordinates from the screenshot. The target description is not cryptographically or structurally bound to the pixels being tapped. A misleading/incorrect description can therefore avoid the approval prompt.
+- `keyboard_keys` also calls `sensitive(target)` on a caller-supplied description before typing coordinates. The actual text/key sequence is not classified independently.
+- The classifier is a keyword heuristic (purchase, delete, payment, permission, etc.), not a complete semantic policy. It cannot reliably identify every consequential control or context.
+
+Disposition: this is a confirmed authorization-design weakness, not proof of exploitation. Before a trusted deployment, coordinate taps and coordinate keyboard entry should require an explicit user approval independent of the model-supplied target description, or be bound to independently observed UI semantics. The sensitive-action classifier should be treated as an additional warning layer, never the sole security boundary.
+
+### Other tool side effects
+
+- Playback controls (play/pause/stop/next/seek) and volume changes are executed after checking the active media session/action support; the inspected paths do not request a separate host approval. These are lower-impact, user-visible media controls but should be included in the documented action policy.
+- Routine execution requests one approval for the named routine, then executes its validated steps; nested routines/timers are rejected. Each nested tool still follows its own checks.
+- Note deletion and routine deletion explicitly request approval.
+- Screen typing rejects password fields but is not itself gated by the sensitive keyword classifier. This deserves a policy decision because typing can place content into message, search, or other forms without submitting it.
+- Public browser actions check fresh snapshot identity, password and disabled controls, and request approval for labels/text matching the same heuristic. Prompt-injection text is treated as untrusted page content in several tool descriptions, but this does not replace action authorization.
+
+### Existing test evidence
+
+The checked-in `reports/tv-assistant-test-results.txt` records **111 passed, 0 failed**, with one explicit SKIP for the retired YouTube upload-feed endpoint. The report includes tests for argument/schema validation, unknown tools, password redaction, stale snapshots, plan bounds/cancellation, OIDC/PKCE, and public browser behavior.
+
+Important qualification: this is a committed report from an earlier run, not a test execution performed during this audit. The existing test set includes a keyword-classifier test, but does not establish that coordinate taps or keyboard entry cannot bypass approval through a misleading `target` description.
+
+### Build and device-safety review
+
+- `build.sh` compiles and signs a development APK using Android Build Tools 36.0.0 and platform android-36. It does not install the APK.
+- `test-local.sh` runs host-side Java checks, but still requires the Android SDK and pinned dependencies.
+- **Do not run `test.sh` with defaults on a connected workstation:** it defaults to ADB target `192.168.1.104:5555` and installs the instrumentation APK on that device. The script has emulator guards only when an emulator test group is selected.
+- No GitHub Actions workflow/build runner was found in this branch's repository tree. No Android SDK build environment is exposed through the available GitHub repository operations in this session.
+
+Disposition: no build or installation was attempted. A clean, isolated build remains pending. Before a device test, explicitly set and verify the ADB serial and use a disposable emulator; do not rely on the script's default target.
+
+### Overall status
+
+Static source review is complete for authentication/token storage, network transport, microphone probe, screen capture, accessibility navigation, tool dispatch, action plans, and the checked-in test/build harness.
+
+The coordinate-authorization gap is the main security finding to resolve before an APK is treated as safe for normal use. Existing test evidence is encouraging but does not close that gap. No APK was produced, installed, or run as part of this audit.
