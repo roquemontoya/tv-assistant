@@ -65,7 +65,7 @@ The app exposes **40 validated functions**, several supporting multiple actions:
 | YouTube | Search public channel/video metadata, read newest uploads from a channel feed, request playback of an exact video, and check matching player-session evidence when available |
 | Media | Search public Cinemeta movie/series metadata, open Stremio title or verified episode pages without autoplay, list active sessions, play/pause/stop/next/previous/seek/rewind/fast-forward when supported |
 | TV | Read/change/mute Android media volume; open general/network/Bluetooth/display/sound/app settings; read device/connectivity information |
-| Screen vision | Optional user-approved screen session, screenshot inspection, taps and swipes using image coordinates, bounded batches of visible keyboard keys; local history retains only the newest screenshot; WebSocket chains reset after at most three images |
+| Screen vision | Optional user-approved screen session, screenshot inspection, taps and swipes using image coordinates, bounded batches of visible keyboard keys; local history retains only the newest screenshot; coordinate taps, swipes and keyboard batches each require explicit user approval |
 | Native navigation | Read visible screen labels, click identified nodes, type in non-password fields, scroll, move focus/select, supported Back/Home/Recents/notification actions |
 | Browsing | Read/click/type in the internal browser; web_page inspects public pages in a background WebView, triggers dynamic searches, and returns verified links for Silk |
 | Personal utilities | Clock, arithmetic, current weather/three-day forecast, local notes/preferences, saved routines, in-process timers, optional TV text-to-speech, bounded waits |
