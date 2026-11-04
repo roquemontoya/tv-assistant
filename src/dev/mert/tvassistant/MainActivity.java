@@ -247,7 +247,7 @@ public final class MainActivity extends Activity
     command.setTextColor(TEXT);
     command.setHintTextColor(DIM);
     command.setTextSize(T_BODY);
-    command.setHint("Say or type a command");
+    command.setHint(LocaleText.text(this, "Say or type a command"));
     command.setPadding(dp(16), 0, dp(16), 0);
     command.setBackground(panel(RAISED, ACCENT));
     command.setOnFocusChangeListener(
@@ -744,6 +744,7 @@ public final class MainActivity extends Activity
     rows.add(new Row("AI limits", "4 requests · 10 steps", this::settingsLimits));
     rows.add(new Row("Permissions", "Navigation and playback", this::settingsPermissions));
     rows.add(new Row("Diagnostics", "Checks and microphone", this::settingsDiagnostics));
+    rows.add(new Row("Language", LocaleText.display(this), this::chooseLanguage));
     rows.add(new Row("Close", null, this::dismissOpen));
     sheet(
         "Settings",
@@ -751,6 +752,16 @@ public final class MainActivity extends Activity
             ? "Connected to ChatGPT. Commands are interpreted by AI."
             : "Not connected. Basic commands still work offline.",
         rows);
+  }
+
+  private void chooseLanguage() {
+    final String[] labels = {"Automatic", "Español", "English", "Português (Brasil)"};
+    final String[] values = {"auto", "es", "en", "pt-BR"};
+    new AlertDialog.Builder(this).setTitle("Language")
+        .setItems(labels, (dialog, which) -> {
+          prefs.edit().putString("ui_locale", values[which]).apply();
+          recreate();
+        }).setNegativeButton("Close", null).show();
   }
 
   private void settingsAccount() {
@@ -1044,7 +1055,7 @@ public final class MainActivity extends Activity
   private void toolList() {
     JSONArray schemas = tools.schemas();
     String[] labels = new String[schemas.length()];
-    for (int i = 0; i < labels.length; i++) labels[i] = schemas.optJSONObject(i).optString("name");
+    for (int i = 0; i < labels.length; i++) labels[i] = LocaleText.toolLabel(this, schemas.optJSONObject(i).optString("name"));
     sheet(
         labels.length + " tools",
         "What the assistant can do. AI tasks are limited to the tools that match your request.",
@@ -1646,7 +1657,7 @@ public final class MainActivity extends Activity
 
   private TextView text(String value, int size, int color) {
     TextView t = new TextView(this);
-    t.setText(value);
+    t.setText(LocaleText.text(this, value));
     t.setTextSize(size);
     t.setTextColor(color);
     return t;
