@@ -755,8 +755,8 @@ public final class MainActivity extends Activity
   }
 
   private void chooseLanguage() {
-    final String[] labels = {"Automatic", "Español", "English", "Português (Brasil)"};
-    final String[] values = {"auto", "es", "en", "pt-BR"};
+    final String[] labels = {"Automatic (Español latinoamericano)", "Español (Latinoamérica)", "English", "Português (Brasil)"};
+    final String[] values = {"auto", "es-419", "en", "pt-BR"};
     new AlertDialog.Builder(this).setTitle("Language")
         .setItems(labels, (dialog, which) -> {
           prefs.edit().putString("ui_locale", values[which]).apply();
