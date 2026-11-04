@@ -348,8 +348,9 @@ final class Tools {
     define(
         "screen_tap",
         "Tap a target identified in the latest screenshot; coordinates use that image's pixels."
-            + " Requires navigation permission. Returns a fresh screenshot and native_screen after"
-            + " the tap when available; inspect that result before claiming success.",
+            + " Requires navigation permission and explicit user approval for every coordinate tap,"
+            + " regardless of the supplied target description. Returns a fresh screenshot and"
+            + " native_screen after the tap when available; inspect that result before claiming success.",
         Json.obj(
             "snapshot",
             string("Fresh screen_see snapshot ID"),
@@ -371,7 +372,9 @@ final class Tools {
             + " Supply submit with the visible Next/Search key coordinates separately: it clicks"
             + " once, checks keyboard dismissal, and retries once only if the same keyboard is still"
             + " open. Do not include Next in keys when using submit."
-            + " Returns a fresh screenshot. Never use for passwords or account permissions.",
+            + " Requires explicit user approval for every coordinate-key batch, regardless of the"
+            + " supplied target description. Returns a fresh screenshot. Never use for passwords"
+            + " or account permissions.",
         Json.obj("snapshot", string("Fresh screenshot ID"),
             "keys", Json.obj("type", "array", "minItems", 1, "maxItems", 32,
                 "items", Json.obj("type", "object", "properties",
@@ -385,7 +388,7 @@ final class Tools {
     define(
         "screen_swipe",
         "Swipe on the latest screenshot to scroll a custom-rendered screen. Coordinates use the"
-            + " image pixels. Inspect afterward.",
+            + " image pixels and every coordinate swipe requires explicit user approval. Inspect afterward.",
         Json.obj(
             "snapshot",
             string("Fresh screen_see snapshot ID"),
@@ -559,6 +562,19 @@ final class Tools {
 
   private void approve(String label) throws Exception {
     if (!host.approve(label)) throw new IllegalArgumentException("User declined the action");
+  }
+
+  static boolean requiresCoordinateApproval(String toolName) {
+    return "screen_tap".equals(toolName)
+        || "screen_swipe".equals(toolName)
+        || "keyboard_keys".equals(toolName);
+  }
+
+  static String coordinateApprovalPrompt(String toolName, String target) {
+    String action = "keyboard_keys".equals(toolName) ? "enter on-screen keyboard input"
+        : "perform a screen " + ("screen_swipe".equals(toolName) ? "swipe" : "tap");
+    return "Allow " + action + " by coordinates? Target description is unverified: ‘"
+        + Json.clip(target == null ? "" : target, 120) + "’.";
   }
 
   static boolean sensitive(String s) {
@@ -1273,7 +1289,6 @@ final class Tools {
             coordinates[keys.length() * 2] = submit.getInt("x");
             coordinates[keys.length() * 2 + 1] = submit.getInt("y");
           }
-          if (sensitive(a.getString("target"))) approve("Enter ‘" + Json.clip(a.getString("target"), 120) + "’?");
           JSONObject initial = ui(() -> nav().inspect());
           JSONArray nodes = initial.optJSONArray("nodes");
           if (nodes != null)
@@ -1282,6 +1297,8 @@ final class Tools {
                 throw new IllegalStateException("Enter passwords yourself");
           String pkg = initial.optString("package");
           float[] points = capture.points(a.getString("snapshot"), coordinates, pkg);
+          // The caller-supplied target is context only, never an authorization signal.
+          approve(coordinateApprovalPrompt("keyboard_keys", a.optString("target")));
           int completed = 0;
           for (int i = 0; i < keys.length(); i++) {
             if (host.cancelled()) throw new InterruptedException("Task stopped");
@@ -1321,7 +1338,6 @@ final class Tools {
           if (capture == null)
             throw new IllegalStateException("Screen vision session is not enabled");
           String target = a.getString("target");
-          if (sensitive(target)) approve("Activate ‘" + Json.clip(target, 120) + "’?");
           String pkg = ui(() -> nav().inspect().optString("package"));
           boolean swipe = name.equals("screen_swipe");
           int[] coordinates =
@@ -1329,6 +1345,8 @@ final class Tools {
                   ? new int[] {a.getInt("x"), a.getInt("y"), a.getInt("end_x"), a.getInt("end_y")}
                   : new int[] {a.getInt("x"), a.getInt("y")};
           float[] point = capture.points(a.getString("snapshot"), coordinates, pkg);
+          // Require approval after validating the fresh snapshot, independent of target wording.
+          approve(coordinateApprovalPrompt(name, target));
           CountDownLatch done = new CountDownLatch(1);
           boolean[] completed = {false};
           boolean accepted =
@@ -1380,11 +1398,14 @@ final class Tools {
               () -> Json.obj("performed", nav().click(a.getString("snapshot"), a.getInt("id")))));
         }
       case "screen_type":
-        return ui(
-            () ->
-                Json.obj(
-                    "performed",
-                    nav().type(a.getString("snapshot"), a.getInt("id"), a.getString("text"))));
+        {
+          String label = ui(() -> nav().label(a.getString("snapshot"), a.getInt("id")));
+          String entered = a.getString("text");
+          if (sensitive(label) || sensitive(entered))
+            approve("Enter potentially sensitive text in ‘" + Json.clip(label, 100) + "’?");
+          return ui(() -> Json.obj("performed",
+              nav().type(a.getString("snapshot"), a.getInt("id"), entered)));
+        }
       case "screen_scroll":
         {
           int count = a.optInt("count", 1), completed = 0;
