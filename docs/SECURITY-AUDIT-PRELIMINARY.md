@@ -173,3 +173,18 @@ This removes the vulnerable Java-WebSocket implementation from the APK build inp
 ### Current verification boundary
 
 GitHub accepted the source, test, build, dependency, notice and README updates on `feature/pamela-samsung-flowbox`. The branch has not been built in this environment: Android SDK/build-tools are unavailable here, and the host-side test script has not been run. The APK has not been generated or installed. Before device testing, run the offline checks and clean APK build in an isolated environment, inspect the resulting APK to confirm no Java-WebSocket/SLF4J classes or JARs are packaged, then verify the Flowbox Android build fingerprint and TLS provider.
+
+
+## Ongoing dependency audit and CI — 2026-11-04
+
+Added `scripts/audit_dependencies.py`, which validates both `dependencies.json` (APK runtime) and `host-dependencies.json` (test/build tooling), requires SHA-256 pins and HTTPS URLs, derives Maven coordinates or requires explicit metadata, and queries OSV. Unknown/unmappable dependencies fail closed; known advisories fail the CI job. Unit tests cover Maven coordinate parsing, unknown URL handling, manifest loading and checksum validation.
+
+Added `.github/workflows/pamela-checks.yml`:
+- dependency metadata tests and OSV checks on every push;
+- pull-request checks targeting `main`;
+- a weekly Monday 08:17 UTC schedule and manual dispatch;
+- an Android SDK 36 / Build Tools 36.0.0 development APK build followed by host-side regression tests.
+
+The weekly schedule is only activated by GitHub after this workflow exists on the repository's default branch. Push checks work on this feature branch. The workflow has been committed but **has not yet been observed running successfully**; no green CI result is claimed. The workflow does not install the APK or run ADB/device tests.
+
+Scope limitation: OSV checks the declared direct Maven artifacts only. It does not audit Android/Fire OS firmware, the developer workstation's JDK/OS, unlisted libraries, arbitrary source code, or remote services. It does not automatically upgrade dependencies.
