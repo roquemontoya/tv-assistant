@@ -35,7 +35,7 @@ jobs:
         run: python scripts/audit_dependencies.py
 
   android-build-and-host-tests:
-    name: Compile APK and run host regression checks
+    name: Compile, inspect, and package development APK
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -53,17 +53,51 @@ jobs:
         run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - name: Build development APK
         run: bash build.sh
-      - name: Verify removed WebSocket libraries are absent from APK
+      - name: Inspect APK contents, signature, manifest, and hash
         run: |
+          set -euo pipefail
+          APK="dist/tv-assistant.apk"
+          TOOLS="$ANDROID_SDK_ROOT/build-tools/36.0.0"
+          mkdir -p dist
+          "$TOOLS/apksigner" verify --verbose --print-certs "$APK" > dist/APK-SIGNATURE.txt
+          "$TOOLS/aapt2" dump badging "$APK" > dist/APK-MANIFEST-BADGING.txt
           python - <<'PY'
-          import zipfile
-          apk = "dist/tv-assistant.apk"
+          import hashlib, zipfile
+          from pathlib import Path
+          apk = Path("dist/tv-assistant.apk")
           with zipfile.ZipFile(apk) as archive:
               names = archive.namelist()
-          forbidden = [name for name in names if name.startswith(("org/java_websocket/", "org/slf4j/"))]
-          if forbidden:
-              raise SystemExit("Removed WebSocket/logging classes found in APK: " + ", ".join(forbidden[:10]))
-          print("PASS: APK contains no Java-WebSocket or SLF4J package entries.")
+              bad = [n for n in names if n.startswith(("org/java_websocket/", "org/slf4j/"))]
+              if bad:
+                  raise SystemExit("Forbidden WebSocket/SLF4J entries: " + ", ".join(bad[:10]))
+              if "classes.dex" not in names:
+                  raise SystemExit("APK is missing classes.dex")
+              if "assets/THIRD_PARTY_NOTICES.md" not in names:
+                  raise SystemExit("APK is missing third-party notices")
+          digest = hashlib.sha256(apk.read_bytes()).hexdigest()
+          report = [
+              "APK inspection: PASS",
+              f"File: {apk}",
+              f"Size: {apk.stat().st_size} bytes",
+              f"SHA-256: {digest}",
+              "DEX: classes.dex present",
+              "Third-party notices: present",
+              "Java-WebSocket classes: absent",
+              "SLF4J classes: absent",
+          ]
+          Path("dist/APK-INSPECTION.txt").write_text("\n".join(report) + "\n")
+          print("\n".join(report))
           PY
       - name: Run host-side regression tests
         run: bash test-local.sh
+      - name: Publish development APK and inspection reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: pamela-development-apk
+          path: |
+            dist/tv-assistant.apk
+            dist/APK-INSPECTION.txt
+            dist/APK-SIGNATURE.txt
+            dist/APK-MANIFEST-BADGING.txt
+          if-no-files-found: error
+          retention-days: 30
